@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>移动端效果预览</title>
+<style>
+/* ================= 基础样式（一般无需修改） ================= */
+:root{
+  --bg:#F4F3EE; --card:#FFFFFF; --text:#1A1B1C; --sub:#6B7280;
+  --border:#E4E3DD; --accent:#4A7BEF; --accent-soft:rgba(74,123,239,.10);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:"PingFang SC","Helvetica Neue","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);padding:32px 20px 48px;line-height:1.6}
+.wrap{max-width:1080px;margin:0 auto}
+header h1{font-size:24px;font-weight:700}
+header .sub{color:var(--sub);font-size:13.5px;margin-top:4px}
+.layout{margin-top:20px;max-width:620px;margin-left:auto;margin-right:auto}
+.stage{width:100%;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;display:flex;flex-direction:column;align-items:center}
+.toolbar{width:100%;display:flex;flex-direction:column;gap:10px;margin-bottom:16px}
+.hot-tabs{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.hot-tabs button{border:1px solid var(--border);background:#fff;border-radius:999px;padding:7px 14px;font-size:12.5px;color:var(--sub);cursor:pointer;min-height:40px;transition:all .15s}
+.hot-tabs button.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.search-wrap{position:relative;width:100%;max-width:420px;margin:0 auto}
+.search-input{width:100%;padding:10px 14px 10px 38px;border:1px solid var(--border);border-radius:999px;font-size:14px;min-height:44px;background:#FAFAF8;outline:none;transition:border .15s}
+.search-input:focus{border-color:var(--accent);background:#fff}
+.search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:#9CA3AF;pointer-events:none;display:flex}
+.results{position:absolute;top:calc(100% + 6px);left:0;right:0;background:#fff;border:1px solid var(--border);border-radius:14px;box-shadow:0 12px 32px rgba(0,0,0,.12);max-height:320px;overflow-y:auto;z-index:20;display:none}
+.results.open{display:block}
+.result-item{width:100%;text-align:left;background:none;border:none;border-bottom:1px solid var(--border);padding:10px 14px;cursor:pointer;font-size:13px;color:var(--text);display:flex;justify-content:space-between;align-items:center;gap:8px}
+.result-item:last-child{border-bottom:none}
+.result-item:hover{background:var(--accent-soft)}
+.result-item .brand{color:var(--sub);font-size:12px;flex-shrink:0}
+.result-item .sz{color:#9CA3AF;font-size:12px;font-variant-numeric:tabular-nums}
+.result-empty{padding:14px;font-size:13px;color:var(--sub);text-align:center}
+.device-badge{text-align:center;font-size:17px;font-weight:700;margin-bottom:12px;color:var(--text)}
+.device-badge .sz{color:var(--sub);font-weight:400;font-size:13px;margin-left:8px;font-variant-numeric:tabular-nums}
+.phone-shell{background:#1C1C1E;border-radius:46px;padding:12px;box-shadow:0 14px 36px rgba(0,0,0,.14)}
+.phone-screen{background:#fff;border-radius:34px;overflow:hidden;position:relative;transition:width .35s ease,height .35s ease}
+.notch{position:absolute;top:9px;left:50%;transform:translateX(-50%);width:36%;height:22px;background:#1C1C1E;border-radius:0 0 12px 12px;z-index:5}
+.statusbar{display:flex;justify-content:space-between;align-items:center;padding:10px 20px 6px;font-size:13px;font-weight:600;height:32px;flex-shrink:0}
+.statusbar .right{display:flex;gap:7px;align-items:center}
+.content{position:relative;width:100%;overflow:hidden}
+/* spec 模式：尺寸校验占位 */
+.spec-block{position:relative;width:100%;background:linear-gradient(135deg,#E9ECF5 0%,#D8DFF0 100%);border:1px dashed #9DB0D8;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
+.spec-label{font-weight:700;color:#2E4E9E;white-space:nowrap}
+.spec-size{color:#4A63A8;white-space:nowrap}
+.safe{position:absolute;border:1px dashed rgba(30,60,140,.75);border-radius:8px;z-index:3;pointer-events:none}
+/* iframe 模式：嵌入已有 HTML */
+.user-frame{width:100%;height:100%;border:0;display:block;background:#fff}
+.stage-cap{text-align:center;margin-top:12px;font-size:13px;color:var(--sub);width:100%}
+.stage-cap b{color:var(--text);font-weight:600}
+.stage-note{text-align:center;margin-top:4px;font-size:11px;color:#9CA3AF}
+.spec-bar{width:100%;margin-top:16px;background:#FAFAF8;border:1px solid var(--border);border-radius:12px;padding:12px 14px}
+.spec-bar-title{font-size:12px;color:var(--sub);margin-bottom:8px;font-weight:600}
+.spec-bar-items{display:flex;flex-wrap:wrap;gap:8px}
+.spec-item{flex:1 1 130px;min-width:0;background:#fff;border:1px solid var(--border);border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;gap:2px}
+.spec-item span{font-size:11px;color:var(--sub)}
+.spec-item b{font-size:13px;font-weight:600}
+.foot{margin-top:24px;font-size:12px;color:#9CA3AF;border-top:1px solid var(--border);padding-top:12px}
+@media (max-width:720px){
+  body{padding:22px 14px 40px}
+  header h1{font-size:20px}
+  .side{flex-basis:100%}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 id="pageTitle">移动端效果预览</h1>
+    <div class="sub" id="pageSub"></div>
+  </header>
+
+  <div class="layout">
+    <div class="stage">
+      <div class="toolbar">
+        <div class="hot-tabs" id="hotTabs"></div>
+        <div class="search-wrap">
+          <span class="search-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          </span>
+          <input class="search-input" id="searchInput" type="text" placeholder="搜索机型，如：iPhone 16 / 小米 / Galaxy / Pixel…" autocomplete="off">
+          <div class="results" id="results"></div>
+        </div>
+      </div>
+
+      <div class="device-badge" id="deviceBadge">iPhone 14<span class="sz">390 × 844</span></div>
+
+      <div class="phone-shell">
+        <div class="phone-screen" id="screen">
+          <div class="notch" id="notch"></div>
+          <div class="statusbar">
+            <span>9:41</span>
+            <span class="right">
+              <svg width="16" height="12" viewBox="0 0 16 12" fill="currentColor"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="4.5" y="5" width="3" height="7" rx="1"/><rect x="9" y="3" width="3" height="9" rx="1"/><rect x="13" y="1" width="3" height="11" rx="1"/></svg>
+              <svg width="16" height="12" viewBox="0 0 16 12" fill="currentColor"><path d="M8 9.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zM8 6c1.9 0 3.6.8 4.9 2L11.6 9.3A4 4 0 0 0 8 8.2 4 4 0 0 0 4.4 9.3L3.1 8A6 6 0 0 1 8 6zm0-3c3 0 5.7 1.2 7.6 3.2l-1.3 1.3A8 8 0 0 0 8 5.2 8 8 0 0 0 1.7 7.5L.4 6.2A10 10 0 0 1 8 3z"/></svg>
+              <svg width="24" height="12" viewBox="0 0 24 12" fill="none"><rect x="0.5" y="0.5" width="21" height="11" rx="3" stroke="currentColor" opacity=".5"/><rect x="2" y="2" width="16" height="8" rx="2" fill="currentColor"/><path d="M23 4v4a2 2 0 0 0 0-4z" fill="currentColor" opacity=".5"/></svg>
+            </span>
+          </div>
+          <div class="content" id="content">
+            <!-- spec 模式占位（contentMode:"spec"） -->
+            <div class="spec-block" id="specBlock" style="display:none">
+              <div class="spec-label" id="specLabel"></div>
+              <div class="spec-size" id="specSize"></div>
+              <div class="safe" id="safe"></div>
+            </div>
+            <!-- iframe 模式（contentMode:"iframe"） -->
+            <iframe class="user-frame" id="userFrame" style="display:none"></iframe>
+          </div>
+        </div>
+      </div>
+
+      <div class="stage-cap" id="cap"></div>
+      <div class="stage-note">手机预览为等比缩放，数值以标注为准</div>
+
+      <div class="spec-bar">
+        <div class="spec-bar-title">设计稿规格（可直接转达给设计师）</div>
+        <div class="spec-bar-items">
+          <div class="spec-item"><span>画布</span><b id="spCanvas">750 × 250</b></div>
+          <div class="spec-item"><span>比例</span><b id="spRatio">3 : 1</b></div>
+          <div class="spec-item"><span>内容安全区</span><b id="spSafe">左右 30 / 上下 20</b></div>
+          <div class="spec-item"><span>高清导出</span><b id="spExport">1500 × 500（2x）</b></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot" id="foot"></div>
+</div>
+
+<script>
+/* ================================================================
+ * CONFIG：按用户需求修改此配置区即可，下方渲染逻辑一般无需改动
+ * ================================================================ */
+var CONFIG = {
+  /* 页面标题与说明 */
+  title: "移动端效果预览",
+  sub: "搜索机型查看真机效果，支持中文品牌（小米/华为/三星等）与 iPhone 全系",
+  /* 默认机型（须存在于机型库 name 中） */
+  defaultDevice: "iPhone 14",
+  /* 热门机型快捷按钮（显示前若干个） */
+  hotDevices: ["iPhone 16 Pro Max", "iPhone 14", "iPhone SE(3)", "Galaxy S25 Ultra", "Pixel 9", "Xiaomi 14T"],
+  /* 设计稿规格：内容在真机上宽度撑满屏幕、高度按比例换算 */
+  design: { w:750, h:250 },
+  /* 内容模式：
+   *   "spec"   —— 尺寸校验：按设计稿比例显示占位块 + 安全区 + 实际尺寸标注
+   *   "iframe" —— 嵌入已有 HTML：iframeSrc 填相对路径（与模板同目录）或完整 URL */
+  contentMode: "spec",
+  iframeSrc: "assets/user-page.html",
+  /* 内容安全区（设计稿 px），仅 spec 模式生效 */
+  safeArea: { lr:30, tb:20 },
+  /* 底部说明文字（可选） */
+  foot: "机型库数据来源：Apple HIG 逻辑分辨率、华为 HarmonyOS 官方适配文档、DeviceAtlas 2026 真实流量视口统计；占位内容仅用于核对尺寸与比例。"
+};
+
+/* ================================================================
+ * 机型库：iPhone 全系（逻辑分辨率 pt）+ Android 主流机型（CSS 视口）
+ * 新机型可追加到此数组：{brand, name, w, h, notch}
+ * ================================================================ */
+var DEVICE_LIBRARY = [
+  /* ---- Apple iPhone ---- */
+  {brand:"Apple", brandZh:"苹果", name:"iPhone 17 Pro Max",  w:440, h:956, notch:true},
+  {brand:"Apple", brandZh:"苹果", name:"iPhone 17 Pro",      w:402, h:874, notch:true},
+  {brand:"Apple", brandZh:"苹果", name:"iPhone 17",          w:402, h:874, notch:true},
+  {brand:"Apple", brandZh:"苹果", name:"iPhone Air",         w:420, h:912, notch:true},
+  {brand:"Apple", brandZh:"苹果", name:"iPhone 17e",         w:390, h:844, notch:true},
+  {brand:"Apple", brandZh:"苹果", name:"iPhone 16 Pro Max",  w:440, h:956, notch:true},
+  {brand:"Apple", brandZh:"苹果", name:"iPhone 16 Pro",      w:402, h:874, notch:true},
+  {brand:"Apple", brandZh:"苹果", name:"iPhone 16 Plus",     w:430, h:932, notch:true},
+  {brand:"Apple", brandZh:"苹果", name:"iPhone 16",          w:393, h:852, notch:true},
+  {brand:"Apple", brandZh:"苹果", name:"iPhone 16e",         w:390, h:844, notch:true},
+  {brand:"Apple", brandZh:"苹果", name:"iPhone 15 Pro Max",  w:430, h:932, notch:true},
+  {brand:"Apple", brandZh:"苹果", name:"iPhone 15 Pro",      w:393, h:852, notch:true},
+  {brand:"Apple", brandZh:"苹果", name:"iPhone 15 Plus",     w:430, h:932, notch:true},
+  {brand:"Apple", brandZh:"苹果", name:"iPhone 15",          w:393, h:852, notch:true},
+  {brand:"Apple", brandZh:"苹果", name:"iPhone 14 Pro Max",  w:430, h:932, notch:true},
+  {brand:"Apple", brandZh:"苹果", name:"iPhone 14 Pro",      w:393, h:852, notch:true},
+  {brand:"Apple", brandZh:"苹果", name:"iPhone 14 Plus",     w:428, h:926, notch:true},
+  {brand:"Apple", brandZh:"苹果", name:"iPhone 14",          w:390, h:844, notch:true},
+  {brand:"Apple", brandZh:"苹果", name:"iPhone 13 Pro Max",  w:428, h:926, notch:true},
+  {brand:"Apple", brandZh:"苹果", name:"iPhone 13 Pro",      w:390, h:844, notch:true},
+  {brand:"Apple", brandZh:"苹果", name:"iPhone 13",          w:390, h:844, notch:true},
+  {brand:"Apple", brandZh:"苹果", name:"iPhone 13 mini",     w:375, h:812, notch:true},
+  {brand:"Apple", brandZh:"苹果", name:"iPhone 12 Pro Max",  w:428, h:926, notch:true},
+  {brand:"Apple", brandZh:"苹果", name:"iPhone 12 Pro",      w:390, h:844, notch:true},
+  {brand:"Apple", brandZh:"苹果", name:"iPhone 12",          w:390, h:844, notch:true},
+  {brand:"Apple", brandZh:"苹果", name:"iPhone 12 mini",     w:375, h:812, notch:true},
+  {brand:"Apple", brandZh:"苹果", name:"iPhone 11 Pro Max",  w:414, h:896, notch:true},
+  {brand:"Apple", brandZh:"苹果", name:"iPhone 11 Pro",      w:375, h:812, notch:true},
+  {brand:"Apple", brandZh:"苹果", name:"iPhone 11",          w:414, h:896, notch:true},
+  {brand:"Apple", brandZh:"苹果", name:"iPhone XS Max",      w:414, h:896, notch:true},
+  {brand:"Apple", brandZh:"苹果", name:"iPhone XS",          w:375, h:812, notch:true},
+  {brand:"Apple", brandZh:"苹果", name:"iPhone XR",          w:414, h:896, notch:true},
+  {brand:"Apple", brandZh:"苹果", name:"iPhone X",           w:375, h:812, notch:true},
+  {brand:"Apple", brandZh:"苹果", name:"iPhone 8 Plus",      w:414, h:736, notch:false},
+  {brand:"Apple", brandZh:"苹果", name:"iPhone 8",           w:375, h:667, notch:false},
+  {brand:"Apple", brandZh:"苹果", name:"iPhone 7 Plus",      w:414, h:736, notch:false},
+  {brand:"Apple", brandZh:"苹果", name:"iPhone 7",           w:375, h:667, notch:false},
+  {brand:"Apple", brandZh:"苹果", name:"iPhone 6s Plus",     w:414, h:736, notch:false},
+  {brand:"Apple", brandZh:"苹果", name:"iPhone 6s",          w:375, h:667, notch:false},
+  {brand:"Apple", brandZh:"苹果", name:"iPhone 6 Plus",      w:414, h:736, notch:false},
+  {brand:"Apple", brandZh:"苹果", name:"iPhone 6",           w:375, h:667, notch:false},
+  {brand:"Apple", brandZh:"苹果", name:"iPhone SE(3)",       w:375, h:667, notch:false},
+  {brand:"Apple", brandZh:"苹果", name:"iPhone SE(2)",       w:375, h:667, notch:false},
+  {brand:"Apple", brandZh:"苹果", name:"iPhone SE(1)",       w:320, h:568, notch:false},
+  {brand:"Apple", brandZh:"苹果", name:"iPhone 5s",          w:320, h:568, notch:false},
+  {brand:"Apple", brandZh:"苹果", name:"iPhone 5",           w:320, h:568, notch:false},
+  {brand:"Apple", brandZh:"苹果", name:"iPhone 4s",          w:320, h:480, notch:false},
+  /* ---- Samsung ---- */
+  {brand:"Samsung", brandZh:"三星", name:"Galaxy S25 Ultra", w:384, h:832, notch:true},
+  {brand:"Samsung", brandZh:"三星", name:"Galaxy S24 Ultra", w:384, h:832, notch:true},
+  {brand:"Samsung", brandZh:"三星", name:"Galaxy S24",       w:360, h:780, notch:true},
+  {brand:"Samsung", brandZh:"三星", name:"Galaxy S22 Ultra", w:384, h:824, notch:true},
+  {brand:"Samsung", brandZh:"三星", name:"Galaxy A54",       w:384, h:832, notch:true},
+  {brand:"Samsung", brandZh:"三星", name:"Galaxy A12",       w:385, h:854, notch:true},
+  /* ---- Xiaomi / Redmi / Poco ---- */
+  {brand:"Xiaomi", brandZh:"小米", name:"Xiaomi 14T",        w:407, h:905, notch:true},
+  {brand:"Xiaomi", brandZh:"小米", name:"Xiaomi Mi 11i",     w:393, h:873, notch:true},
+  {brand:"Xiaomi", brandZh:"小米", name:"Redmi Note 13",     w:393, h:873, notch:true},
+  {brand:"Xiaomi", brandZh:"小米", name:"Redmi Note 9",      w:393, h:851, notch:true},
+  {brand:"Xiaomi", brandZh:"小米", name:"Redmi 14C",         w:360, h:820, notch:true},
+  {brand:"Xiaomi", brandZh:"小米", name:"Poco X6 Pro",       w:407, h:905, notch:true},
+  /* ---- Google Pixel ---- */
+  {brand:"Google", brandZh:"谷歌", name:"Pixel 9 Pro XL",    w:448, h:998, notch:true},
+  {brand:"Google", brandZh:"谷歌", name:"Pixel 9",           w:412, h:924, notch:true},
+  {brand:"Google", brandZh:"谷歌", name:"Pixel 9a",          w:412, h:924, notch:true},
+  {brand:"Google", brandZh:"谷歌", name:"Pixel 8 Pro",       w:448, h:998, notch:true},
+  {brand:"Google", brandZh:"谷歌", name:"Pixel 8",           w:412, h:915, notch:true},
+  /* ---- Motorola ---- */
+  {brand:"Motorola", brandZh:"摩托罗拉", name:"Moto G Power(2025)",   w:444, h:980, notch:true},
+  {brand:"Motorola", brandZh:"摩托罗拉", name:"Moto G Stylus 5G(2024)",w:432, h:960, notch:true},
+  {brand:"Motorola", brandZh:"摩托罗拉", name:"Moto G(2025)",         w:412, h:917, notch:true},
+  {brand:"Motorola", brandZh:"摩托罗拉", name:"Moto G 5G(2024)",      w:412, h:922, notch:true},
+  {brand:"Motorola", brandZh:"摩托罗拉", name:"Moto G Play(2024)",    w:412, h:915, notch:true},
+  /* ---- OPPO / vivo / realme ---- */
+  {brand:"OPPO", brandZh:"OPPO",   name:"OPPO Reno7 Pro",    w:393, h:873, notch:true},
+  {brand:"OPPO", brandZh:"OPPO",   name:"OPPO A38",          w:360, h:806, notch:true},
+  {brand:"vivo", brandZh:"vivo",   name:"vivo Y36",          w:393, h:869, notch:true},
+  {brand:"vivo", brandZh:"vivo",   name:"vivo Y19s",         w:360, h:804, notch:true},
+  {brand:"realme", brandZh:"真我", name:"realme C67",        w:393, h:873, notch:true},
+  {brand:"realme", brandZh:"真我", name:"realme Note 50",    w:360, h:800, notch:true},
+  /* ---- Huawei / OnePlus ---- */
+  {brand:"Huawei", brandZh:"华为", name:"Huawei Mate 70 Pro", w:374, h:827, notch:true},
+  {brand:"Huawei", brandZh:"华为", name:"Huawei Mate 60 Pro",  w:374, h:827, notch:true},
+  {brand:"Huawei", brandZh:"华为", name:"Huawei Pura 70 Pro",  w:374, h:827, notch:true},
+  {brand:"Huawei", brandZh:"华为", name:"Huawei Pura 70",      w:374, h:827, notch:true},
+  {brand:"Huawei", brandZh:"华为", name:"Huawei Mate 30 Pro",w:392, h:800, notch:true},
+  {brand:"Huawei", brandZh:"华为", name:"Huawei Nova 7i",    w:360, h:770, notch:true},
+  {brand:"OnePlus", brandZh:"一加",name:"OnePlus 9",         w:360, h:800, notch:true}
+];
+
+/* ================= 渲染逻辑（一般无需修改） ================= */
+(function(){
+  var cfg = CONFIG;
+  var lib = DEVICE_LIBRARY;
+  var SB_H = 32; // 状态栏高度
+  var current = null;
+
+  function findByName(n){
+    for (var i = 0; i < lib.length; i++) if (lib[i].name === n) return lib[i];
+    return lib[0];
+  }
+  current = findByName(cfg.defaultDevice);
+
+  var $ = function(id){ return document.getElementById(id); };
+  var screen = $('screen'), notch = $('notch'), content = $('content'),
+      specBlock = $('specBlock'), specLabel = $('specLabel'), specSize = $('specSize'),
+      safe = $('safe'), userFrame = $('userFrame'), hotTabs = $('hotTabs'),
+      searchInput = $('searchInput'), results = $('results'), cap = $('cap'),
+      deviceBadge = $('deviceBadge');
+
+  function setMode(){
+    var spec = cfg.contentMode !== "iframe";
+    specBlock.style.display = spec ? '' : 'none';
+    userFrame.style.display = spec ? 'none' : '';
+    if (!spec) userFrame.src = cfg.iframeSrc;
+  }
+
+  function buildHot(){
+    hotTabs.innerHTML = '';
+    var list = (cfg.hotDevices || []).slice(0, 8);
+    list.forEach(function(n){
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = n;
+      b.addEventListener('click', function(){
+        current = findByName(n);
+        closeResults();
+        render();
+      });
+      hotTabs.appendChild(b);
+    });
+  }
+
+  function renderResults(query){
+    var q = (query || '').trim().toLowerCase();
+    var list = lib.filter(function(d){
+      if (!q) return true;
+      var hay = (d.brandZh + ' ' + d.brand + ' ' + d.name + ' ' + d.w + 'x' + d.h + ' ' + d.w + '×' + d.h).toLowerCase();
+      return hay.indexOf(q) !== -1;
+    });
+    results.innerHTML = '';
+    if (!list.length) {
+      var e = document.createElement('div');
+      e.className = 'result-empty';
+      e.textContent = '未找到该机型，可换关键词（品牌/型号/尺寸）试试';
+      results.appendChild(e);
+      results.classList.add('open');
+      return;
+    }
+    list.slice(0, 30).forEach(function(d){
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'result-item';
+      b.innerHTML = '<span>' + d.name + '</span><span class="brand">' + d.brandZh +
+                    '</span><span class="sz">' + d.w + ' × ' + d.h + '</span>';
+      b.addEventListener('mousedown', function(ev){ ev.preventDefault(); });
+      b.addEventListener('click', function(){
+        current = d;
+        closeResults();
+        render();
+      });
+      results.appendChild(b);
+    });
+    results.classList.add('open');
+  }
+
+  function closeResults(){ results.classList.remove('open'); }
+
+  function render(){
+    try {
+      var d = current;
+      var stage = document.querySelector('.stage');
+      var avail = stage.clientWidth - 36;
+      var phoneW = Math.min(d.w, avail, 480);
+
+      screen.style.width = phoneW + 'px';
+      screen.style.height = Math.round(phoneW * d.h / d.w) + 'px';
+      notch.style.display = d.notch ? 'block' : 'none';
+
+      var contentH = Math.round(phoneW * d.h / d.w) - SB_H;
+      content.style.height = contentH + 'px';
+      var s = phoneW / cfg.design.w;   // 设计稿 → 真机缩放比
+
+      var hot = hotTabs.querySelectorAll('button');
+      for (var i = 0; i < hot.length; i++) {
+        hot[i].classList.toggle('on', hot[i].textContent === d.name);
+      }
+
+      if (cfg.contentMode !== "iframe") {
+        var bh = Math.round(phoneW * cfg.design.h / cfg.design.w);
+        specBlock.style.height = bh + 'px';
+        specLabel.style.fontSize = Math.round(22 * s) + 'px';
+        specSize.style.fontSize = Math.round(13 * s) + 'px';
+        var designSize = cfg.design.w + ' × ' + cfg.design.h;
+        var realW = d.w, realH = Math.round(d.w * cfg.design.h / cfg.design.w);
+        specLabel.textContent = '内容占位 ' + designSize;
+        specSize.textContent = '真机 ' + realW + ' × ' + realH + ' px';
+        safe.style.left = Math.round(cfg.safeArea.lr * s) + 'px';
+        safe.style.right = Math.round(cfg.safeArea.lr * s) + 'px';
+        safe.style.top = Math.round(cfg.safeArea.tb * s) + 'px';
+        safe.style.bottom = Math.round(cfg.safeArea.tb * s) + 'px';
+        var ratio = (realH / d.h * 100).toFixed(1);
+        cap.innerHTML = '内容显示 <b>' + realW + ' × ' + realH + ' px</b> · 占屏 <b>' + ratio + '%</b>';
+      } else {
+        cap.innerHTML = '嵌入页面全屏预览 · 视口 <b>' + d.w + ' × ' + contentH + ' px</b>';
+      }
+
+      deviceBadge.innerHTML = d.name + '<span class="sz">' + d.w + ' × ' + d.h + '</span>';
+
+      var dw = cfg.design.w, dh = cfg.design.h;
+      $('spCanvas').textContent = dw + ' × ' + dh;
+      var rv = dw / dh;
+      $('spRatio').textContent = (Math.round(rv) === rv ? rv : rv.toFixed(1)) + ' : 1';
+      $('spSafe').textContent = '左右 ' + cfg.safeArea.lr + ' / 上下 ' + cfg.safeArea.tb;
+      $('spExport').textContent = (dw * 2) + ' × ' + (dh * 2) + '（2x）';
+    } catch (e) { console.error(e); }
+  }
+
+  searchInput.addEventListener('input', function(){ renderResults(this.value); });
+  searchInput.addEventListener('focus', function(){ renderResults(this.value); });
+  document.addEventListener('click', function(ev){
+    if (!ev.target.closest('.search-wrap')) closeResults();
+  });
+
+  $('pageTitle').textContent = cfg.title;
+  $('pageSub').textContent = cfg.sub;
+  $('foot').textContent = cfg.foot || '';
+  setMode();
+  buildHot();
+  render();
+  window.addEventListener('resize', function(){ render(); });
+})();
+</script>
+</body>
+</html>
